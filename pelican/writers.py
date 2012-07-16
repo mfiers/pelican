@@ -166,3 +166,45 @@ class Writer(object):
             # no pagination
             _write_file(template, localcontext, self.output_path, name)
 
+    def replace_links(self, content, context):
+        """Recursively run the context to find elements (articles, pages, etc)
+        whose content getter needs to be modified in order to deal with
+        relative paths.
+
+        :param context: dict that will be passed to the templates, which need
+                        to be updated.
+        """
+        def _update_content(input):
+            """Change all the relatives paths of the input content to relatives
+            paths suitable fot the ouput content
+
+            :param name: path of the output.
+            :param input: input resource that will be passed to the templates.
+            """
+            content = input._content
+
+            hrefs = re.compile(r"""
+                (?P<markup><\s*[^\>]*  # match tag with src and href attr
+                    (?:href|src)\s*=)
+
+                (?P<quote>["\'])      # require value to be quoted
+                (?P<path>:(?P<what>.*):(?P<value>.*))  # the url value
+                \2""", re.X)
+
+            def replacer(m):
+                what = m.group('what')
+                value = m.group('value')
+                origin = m.group('path')
+                # we support only filename for now. the plan is to suppose
+                # categories, tags, etc. in the future, but let's keep things
+                # simple for now.
+                if what == 'filename' and value in context['filenames']:
+                    dest_path = context['filename'].url()
+                else:
+                    dest_path = origin
+
+                return m.group('markup') + m.group('quote') + dest_path \
+                        + m.group('quote')
+
+            return hrefs.sub(replacer, content)
+        return _update_content(input)
