@@ -127,7 +127,9 @@ class Page(object):
 
     @property
     def content(self):
-        if hasattr(self, "_get_content"):
+        if self.rewrite_links:
+
+        _get_content"):
             content = self._get_content()
         else:
             content = self._content

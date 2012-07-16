@@ -57,6 +57,7 @@ class Generator(object):
         # get custom Jinja filters from user settings
         custom_filters = self.settings.get('JINJA_FILTERS', {})
         self.env.filters.update(custom_filters)
+        self.context['filenames'] = kwargs.get('filenames', {})
 
     def get_template(self, name):
         """Return the template by name.
@@ -183,7 +184,7 @@ class ArticlesGenerator(Generator):
             save_as = self.settings.get("%s_SAVE_AS" % template.upper(),
                                                         '%s.html' % template)
             if not save_as:
-                 continue
+                continue
 
             write(save_as, self.get_template(template),
                   self.context, blog=True, paginated=paginated,
@@ -237,7 +238,6 @@ class ArticlesGenerator(Generator):
         self.generate_articles(write)
         self.generate_direct_templates(write)
 
-
         # and subfolders after that
         self.generate_tags(write)
         self.generate_categories(write)
@@ -245,7 +245,7 @@ class ArticlesGenerator(Generator):
         self.generate_drafts(write)
 
     def generate_context(self):
-        """change the context"""
+        """Add the articles into the shared context"""
 
         article_path = os.path.normpath(  # we have to remove trailing slashes
             os.path.join(self.path, self.settings['ARTICLE_DIR'])
@@ -263,8 +263,9 @@ class ArticlesGenerator(Generator):
             # if no category is set, use the name of the path as a category
             if 'category' not in metadata:
 
-                if os.path.dirname(f) == article_path:  # if the article is not in a subdirectory
-                    category = self.settings['DEFAULT_CATEGORY'] 
+                # if the article is not in a subdirectory
+                if os.path.dirname(f) == article_path:
+                    category = self.settings['DEFAULT_CATEGORY']
                 else:
                     category = os.path.basename(os.path.dirname(f))\
                                 .decode('utf-8')
@@ -281,6 +282,8 @@ class ArticlesGenerator(Generator):
                               filename=f)
             if not is_valid_content(article, f):
                 continue
+
+            self.context['filenames'][f] = article
 
             if article.status == "published":
                 if hasattr(article, 'tags'):
@@ -374,6 +377,7 @@ class PagesGenerator(Generator):
             if not is_valid_content(page, f):
                 continue
             all_pages.append(page)
+            self.context['filenames'][f] = page
 
         self.pages, self.translations = process_translations(all_pages)
 
@@ -459,8 +463,8 @@ class PdfGenerator(Generator):
             try:
                 os.mkdir(pdf_path)
             except OSError:
-                logger.error("Couldn't create the pdf output folder in " + pdf_path)
-                pass
+                logger.error("Couldn't create the pdf output folder in " +
+                             pdf_path)
 
         for article in self.context['articles']:
             self._create_pdf(article, pdf_path)
