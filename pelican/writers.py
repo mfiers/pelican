@@ -101,6 +101,7 @@ class Writer(object):
         :param **kwargs: additional variables to pass to the templates
         """
 
+        #  CONTENT_STATIC_LOC = '../../'
         if name is False:
             return
         elif not name:
@@ -198,8 +199,9 @@ class Writer(object):
 
             def replacer(m):
                 relative_path = m.group('path')
+                replace_with = self.settings.get('CONTENT_STATIC_LOC', 'static')
                 dest_path = os.path.normpath(
-                                os.sep.join((get_relative_path(name), "static",
+                                os.sep.join((get_relative_path(name), replace_with,
                                 relative_path)))
 
                 return m.group('markup') + m.group('quote') + dest_path \
